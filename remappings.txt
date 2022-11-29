@@ -1,3 +1,9 @@
+@chainlink/=lib/chainlink/contracts/src/v0.8/
 ds-test/=lib/ds-test/src/
-solmate/=lib/solmate/src/
+erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/
 forge-std/=lib/forge-std/src/
+@openzeppelin/=lib/openzeppelin-contracts/contracts/
+solmate/=lib/solmate/src/
+weird-erc20/=lib/solmate/lib/weird-erc20/src/
+ERC721A/=lib/ERC721A/contracts/
+@openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts
