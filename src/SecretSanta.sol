@@ -5,7 +5,7 @@ import "@openzeppelin/token/ERC721/IERC721.sol";
 import "@openzeppelin/token/ERC721/utils/ERC721Holder.sol";
 
 contract SecretSanta is ERC721Holder {
-    struct SantaVault {
+    struct Vault {
         address erc721Address;
         uint256 erc721TokenId;
         uint256 erc721Index;
@@ -18,26 +18,41 @@ contract SecretSanta is ERC721Holder {
 
     error No_Deposits();
     error Collected();
+    error ZeroAddress();
+    error NotTokenOwner();
 
     uint256 public revealTimestamp;
     address private ownerAddress;
 
-    Gift[] public santasGifts;
+    Gift[] public gifts;
 
-    mapping(address => SantaVault) public Depositers;
+    mapping(address => Vault) public Depositers;
     mapping(address => Gift) public collectedGifts;
+
+    modifier nonZeroAddress(address _nftaddress) {
+        if (_nftaddress == address(0)) revert ZeroAddress();
+        _;
+    }
+
+    modifier onlyOwnerOf(address _nftaddress, uint256 _tokenId) {
+        if (msg.sender != ownerOf(_nftaddress, _tokenId))
+            revert NotTokenOwner();
+        _;
+    }
 
     constructor(uint256 _revealTimestamp, address _ownerAddress) {
         revealTimestamp = _revealTimestamp;
         ownerAddress = _ownerAddress;
     }
 
-    function deposit(address _nftaddress, uint256 _tokenId) public {
-        uint256 idx = santasGifts.length;
+    function deposit(address _nftaddress, uint256 _tokenId)
+        public
+        nonZeroAddress(_nftaddress)
+        onlyOwnerOf(_nftaddress, _tokenId)
+    {
+        gifts.push(Gift(_nftaddress, _tokenId));
 
-        santasGifts.push(Gift(_nftaddress, _tokenId));
-
-        Depositers[msg.sender] = SantaVault(_nftaddress, _tokenId, idx);
+        Depositers[msg.sender] = Vault(_nftaddress, _tokenId, gifts.length);
 
         IERC721(_nftaddress).safeTransferFrom(
             msg.sender,
@@ -47,20 +62,21 @@ contract SecretSanta is ERC721Holder {
     }
 
     function collect() public returns (uint256) {
-        SantaVault memory santavault = Depositers[msg.sender];
+        Vault memory vault = Depositers[msg.sender];
 
-        if (santavault.erc721Address == address(0)) revert No_Deposits();
+        if (vault.erc721Address == address(0)) revert No_Deposits();
         if (collectedGifts[msg.sender].erc721Address != address(0))
             revert Collected();
+
         uint256 giftIdx;
 
-        if (santasGifts.length == 1) {
+        if (gifts.length == 1) {
             giftIdx = 0;
         } else {
-            giftIdx = _randomNumber() % santasGifts.length;
+            giftIdx = _randomNumber() % gifts.length;
         }
 
-        Gift memory gift = santasGifts[giftIdx];
+        Gift memory gift = gifts[giftIdx];
 
         IERC721(gift.erc721Address).safeTransferFrom(
             address(this),
@@ -75,8 +91,11 @@ contract SecretSanta is ERC721Holder {
                 abi.encodePacked(
                     block.difficulty,
                     block.timestamp,
-                    santasGifts.length,
-                    msg.sender
+                    gifts.length,
+                    block.number,
+                    blockhash(block.number - 1),
+                    msg.sender,
+                    tx.gasprice
                 )
             )
         );

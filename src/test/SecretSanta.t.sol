@@ -22,12 +22,9 @@ contract SecretSantaTest is DSTest {
     address payable[] internal users;
 
     SecretSanta public secretsanta;
-    // VRFCoordinatorV2Mock mockCoordinator;
 
     address admin = address(0x0132);
     address user = address(0x01);
-
-    // uint64 subscriptionId;
 
     function setUp() public {
         vm.label(user, "USER");
@@ -92,18 +89,4 @@ contract SecretSantaTest is DSTest {
         uint256 giftId = secretsanta.collect();
         console.logUint(giftId);
     }
-    // function testrequestRandomWords()public{
-
-    //     address consumerAdress = address(0x1);
-
-    //     vm.prank(admin);
-    //     mockCoordinator.addConsumer(subscriptionId,address(secretsanta));
-    //     mockCoordinator.fundSubscription(subscriptionId,100 ether);
-
-    // s_subscriptions[_subId].owner
-    // vm.prank(admin);
-    // vm.startPrank(admin);
-    // secretsanta.requestRandomWords();
-    // vm.stopPrank();
-    // }
 }
