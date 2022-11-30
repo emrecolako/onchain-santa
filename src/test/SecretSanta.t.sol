@@ -52,7 +52,6 @@ contract SecretSantaTest is DSTest {
             1668776723,
             0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84
         );
-        // subscriptionId=mockCoordinator.createSubscription();
         vm.stopPrank();
     }
 
