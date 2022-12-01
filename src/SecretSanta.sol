@@ -5,14 +5,7 @@ import "@openzeppelin/token/ERC721/IERC721.sol";
 import "@openzeppelin/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/utils/cryptography/MerkleProof.sol";
 
-// Potential problems:
-//[+] 1. No checks for ownership of the ERC721 tokens being deposited. [+]
-// 2. No check to make sure the same token is not deposited twice. [+]
-// 3. No check to make sure the depositor is not depositing their own token. [+]
-// 4. No log of the gift assignments.
-// 5. No requirement that the depositor must withdraw their token within a certain time frame.
-
-// Improvements:
+// Potential Improvements:
 // 1. Add a check to make sure the depositor is not depositing their own token.
 // 2. Add a check to ensure the same token is not deposited twice by using a mapping of token IDs.
 // 3. Add a log of all gift assignments and a timestamp for when gifts were collected.
@@ -38,18 +31,25 @@ contract SecretSanta is ERC721Holder {
     error MerkleProofInvalid();
     error No_Deposits();
     error NotTokenOwner();
+    error NotOwner();
     error ZeroAddress();
 
     uint256 public revealTimestamp;
-    address private ownerAddress;
+    address public ownerAddress;
 
     Gift[] public gifts;
 
     mapping(address => Vault) public Depositors;
     mapping(address => Gift) public collectedGifts;
+    mapping(address => uint256) public DepositCount;
 
     modifier nonZeroAddress(address _nftaddress) {
         if (_nftaddress == address(0)) revert ZeroAddress();
+        _;
+    }
+
+    modifier onlyOwner() {
+        if (msg.sender != ownerAddress) revert NotOwner();
         _;
     }
 
@@ -59,9 +59,9 @@ contract SecretSanta is ERC721Holder {
         _;
     }
 
-    constructor(uint256 _revealTimestamp, address _ownerAddress) {
+    constructor(uint256 _revealTimestamp) {
         revealTimestamp = _revealTimestamp;
-        ownerAddress = _ownerAddress;
+        ownerAddress = msg.sender;
     }
 
     function deposit(address _nftaddress, uint256 _tokenId)
@@ -69,15 +69,15 @@ contract SecretSanta is ERC721Holder {
         nonZeroAddress(_nftaddress)
         onlyOwnerOf(_nftaddress, _tokenId)
     {
-        gifts.push(Gift(_nftaddress, _tokenId));
-
-        Depositors[msg.sender] = Vault(_nftaddress, _tokenId, gifts.length);
-
         IERC721(_nftaddress).safeTransferFrom(
             msg.sender,
             address(this),
             _tokenId
         );
+
+        gifts.push(Gift(_nftaddress, _tokenId));
+        DepositCount[msg.sender]++;
+        Depositors[msg.sender] = Vault(_nftaddress, _tokenId, gifts.length);
     }
 
     function collect() public {
@@ -123,5 +123,13 @@ contract SecretSanta is ERC721Holder {
 
     function getDepositedGifts() public view returns (Gift[] memory) {
         return gifts;
+    }
+
+    function adminWithdraw(
+        address _nftaddress,
+        uint256 _tokenId,
+        address recipient
+    ) external onlyOwner {
+        IERC721(_nftaddress).transferFrom(address(this), recipient, _tokenId);
     }
 }

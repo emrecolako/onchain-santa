@@ -48,10 +48,7 @@ contract SecretSantaTest is DSTest {
         vm.stopPrank();
 
         vm.prank(admin);
-        secretsanta = new SecretSanta(
-            1668776723,
-            0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84
-        );
+        secretsanta = new SecretSanta(1668776723);
         vm.stopPrank();
     }
 
