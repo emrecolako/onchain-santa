@@ -15,26 +15,37 @@ import "@openzeppelin/utils/cryptography/MerkleProof.sol";
 // 7. Add only one deposit per address.
 
 contract SecretSanta is ERC721Holder {
+    /// @notice Individual NFT details + Index
     struct Vault {
         address erc721Address;
         uint256 erc721TokenId;
         uint256 erc721Index;
     }
 
+    /// @notice Gift address & tokenId
     struct Gift {
         address erc721Address;
         uint256 erc721TokenId;
     }
 
-    error Collected();
+    /*//////////////////////////////////////////////////////////////
+                          ERRORS
+    //////////////////////////////////////////////////////////////*/
+    /// @notice If user has already collected
+    error AlreadyCollected();
+    /// @notice If user has already deposited
     error GiftAlreadyDeposited();
-    error MerkleProofInvalid();
+    /// @notice If user hasn't made any deposits
     error No_Deposits();
+    /// @notice If user is not the token owner
     error NotTokenOwner();
+    /// @notice If user is not the owner of the contract
     error NotOwner();
+
+    /// @notice Throws error if address = 0
     error ZeroAddress();
 
-    uint256 public revealTimestamp;
+    uint256 public reclaimTimestamp;
     address public ownerAddress;
 
     Gift[] public gifts;
@@ -59,11 +70,12 @@ contract SecretSanta is ERC721Holder {
         _;
     }
 
-    constructor(uint256 _revealTimestamp) {
-        revealTimestamp = _revealTimestamp;
+    constructor(uint256 _reclaimTimestamp) {
+        reclaimTimestamp = _reclaimTimestamp;
         ownerAddress = msg.sender;
     }
 
+    /// @notice Allows users to deposit gifts
     function deposit(address _nftaddress, uint256 _tokenId)
         public
         nonZeroAddress(_nftaddress)
@@ -80,12 +92,13 @@ contract SecretSanta is ERC721Holder {
         Depositors[msg.sender] = Vault(_nftaddress, _tokenId, gifts.length);
     }
 
+    /// @notice Allows depositors to collect gifts
     function collect() public {
         Vault memory vault = Depositors[msg.sender];
 
         if (vault.erc721Address == address(0)) revert No_Deposits();
         if (collectedGifts[msg.sender].erc721Address != address(0))
-            revert Collected();
+            revert AlreadyCollected();
 
         uint256 giftIdx;
 
@@ -104,6 +117,7 @@ contract SecretSanta is ERC721Holder {
         );
     }
 
+    /// @notice Random number generator
     function _randomNumber() internal view returns (uint256) {
         uint256 randomNumber = uint256(
             keccak256(
@@ -121,10 +135,12 @@ contract SecretSanta is ERC721Holder {
         return randomNumber;
     }
 
+    /// @notice Return index of gifts
     function getDepositedGifts() public view returns (Gift[] memory) {
         return gifts;
     }
 
+    /// @notice Emergency function to withdraw certain NFT
     function adminWithdraw(
         address _nftaddress,
         uint256 _tokenId,
