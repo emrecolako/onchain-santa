@@ -54,6 +54,10 @@ contract SecretSanta is ERC721Holder {
     mapping(address => Gift) public collectedGifts;
     mapping(address => uint256) public DepositCount;
 
+    /*//////////////////////////////////////////////////////////////
+                          MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
     modifier nonZeroAddress(address _nftaddress) {
         if (_nftaddress == address(0)) revert ZeroAddress();
         _;
@@ -70,10 +74,18 @@ contract SecretSanta is ERC721Holder {
         _;
     }
 
+    /*//////////////////////////////////////////////////////////////
+                          CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
     constructor(uint256 _reclaimTimestamp) {
         reclaimTimestamp = _reclaimTimestamp;
         ownerAddress = msg.sender;
     }
+
+    /*//////////////////////////////////////////////////////////////
+                          SANTA FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /// @notice Allows users to deposit gifts
     function deposit(address _nftaddress, uint256 _tokenId)
@@ -116,6 +128,10 @@ contract SecretSanta is ERC721Holder {
             gift.erc721TokenId
         );
     }
+
+    /*//////////////////////////////////////////////////////////////
+                          INTERNAL + ADMIN
+    //////////////////////////////////////////////////////////////*/
 
     /// @notice Random number generator
     function _randomNumber() internal view returns (uint256) {
