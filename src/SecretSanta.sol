@@ -47,7 +47,6 @@ contract SecretSanta is ERC721Holder {
 
     mapping(address => Vault) public Depositors;
     mapping(address => Gift) public collectedGifts;
-    mapping(address => mapping(uint256 => bool)) public depositedGifts;
 
     modifier nonZeroAddress(address _nftaddress) {
         if (_nftaddress == address(0)) revert ZeroAddress();
