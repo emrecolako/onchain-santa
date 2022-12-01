@@ -55,23 +55,28 @@ contract SecretSantaTest is DSTest {
         vm.stopPrank();
     }
 
-    function testDeposit() public {
+    function testDepositTwice() public {
         address nftTwoAddress = address(depositNFT_TWO);
         vm.startPrank(address(users[1]));
         depositNFT_TWO.mint();
         depositNFT_TWO.setApprovalForAll(address(secretsanta), true);
         secretsanta.deposit(nftTwoAddress, 1);
+        secretsanta.deposit(nftTwoAddress, 1);
 
-        assertEq(depositNFT_TWO.ownerOf(1), address(secretsanta));
+        // assertEq(depositNFT_TWO.ownerOf(1), address(secretsanta));
         vm.stopPrank();
     }
 
-    function testRandom() public {
-        vm.warp(block.timestamp + 1 days);
-        vm.warp(block.difficulty + 1);
-        uint256 rand = secretsanta._randomNumber();
-        console.logUint(rand);
+    function testGetDepositedGifts() public {
+        secretsanta.getDepositedGifts();
     }
+
+    // function testRandom() public {
+    //     vm.warp(block.timestamp + 1 days);
+    //     vm.warp(block.difficulty + 1);
+    //     uint256 rand = secretsanta._randomNumber();
+    //     console.logUint(rand);
+    // }
 
     function testCollect() public {
         address nftTwoAddress = address(depositNFT_TWO);
@@ -85,7 +90,15 @@ contract SecretSantaTest is DSTest {
             secretsanta.deposit(nftTwoAddress, i);
         }
         vm.warp(1641070812);
-        uint256 giftId = secretsanta.collect();
-        console.logUint(giftId);
+        // uint256 giftId = secretsanta.collect();
+        // console.logUint(giftId);
+    }
+
+    function testCollectNoContribution() public {
+        address nftTwoAddress = address(depositNFT_TWO);
+        vm.startPrank(address(users[3]));
+
+        vm.warp(1641070812);
+        secretsanta.collect();
     }
 }

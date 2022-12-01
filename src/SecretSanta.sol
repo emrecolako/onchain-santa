@@ -3,6 +3,7 @@ pragma solidity >=0.8.0;
 
 import "@openzeppelin/token/ERC721/IERC721.sol";
 import "@openzeppelin/token/ERC721/utils/ERC721Holder.sol";
+import "@openzeppelin/utils/cryptography/MerkleProof.sol";
 
 // Potential problems:
 //[+] 1. No checks for ownership of the ERC721 tokens being deposited. [+]
@@ -32,11 +33,12 @@ contract SecretSanta is ERC721Holder {
         uint256 erc721TokenId;
     }
 
-    error No_Deposits();
     error Collected();
-    error ZeroAddress();
-    error NotTokenOwner();
     error GiftAlreadyDeposited();
+    error MerkleProofInvalid();
+    error No_Deposits();
+    error NotTokenOwner();
+    error ZeroAddress();
 
     uint256 public revealTimestamp;
     address private ownerAddress;
@@ -45,6 +47,7 @@ contract SecretSanta is ERC721Holder {
 
     mapping(address => Vault) public Depositors;
     mapping(address => Gift) public collectedGifts;
+    mapping(address => mapping(uint256 => bool)) public depositedGifts;
 
     modifier nonZeroAddress(address _nftaddress) {
         if (_nftaddress == address(0)) revert ZeroAddress();
@@ -57,26 +60,6 @@ contract SecretSanta is ERC721Holder {
         _;
     }
 
-    // modifier onlyDepositor(){}
-
-    modifier notDeposited(address _nftaddress, uint256 _tokenId) {
-        for (uint256 i = 0; i < gifts.length; i++) {
-            if (
-                gifts[i].erc721Address == _nftaddress &&
-                gifts[i].erc721TokenId == _tokenId
-            ) revert GiftAlreadyDeposited();
-        }
-        _;
-    }
-
-    // function checkDeposit(address _nftaddress, uint256 _tokenId) public view returns (bool){
-    //     for (uint256 i = 0; i < gifts.length; i++) {
-    //         if (gifts[i].nftAddress == _nftaddress && gifts[i].tokenId == _tokenId){
-    //             return false;
-    //         }
-    //     }
-    //     return true;
-    // }
     constructor(uint256 _revealTimestamp, address _ownerAddress) {
         revealTimestamp = _revealTimestamp;
         ownerAddress = _ownerAddress;
@@ -86,7 +69,6 @@ contract SecretSanta is ERC721Holder {
         public
         nonZeroAddress(_nftaddress)
         onlyOwnerOf(_nftaddress, _tokenId)
-        notDeposited(_nftaddress, _tokenId)
     {
         gifts.push(Gift(_nftaddress, _tokenId));
 
@@ -99,8 +81,7 @@ contract SecretSanta is ERC721Holder {
         );
     }
 
-    function collect() public () {
-        
+    function collect() public {
         Vault memory vault = Depositors[msg.sender];
 
         if (vault.erc721Address == address(0)) revert No_Deposits();
@@ -124,7 +105,7 @@ contract SecretSanta is ERC721Holder {
         );
     }
 
-    function _randomNumber() public view returns (uint256) {
+    function _randomNumber() internal view returns (uint256) {
         uint256 randomNumber = uint256(
             keccak256(
                 abi.encodePacked(
@@ -139,5 +120,9 @@ contract SecretSanta is ERC721Holder {
             )
         );
         return randomNumber;
+    }
+
+    function getDepositedGifts() public view returns (Gift[] memory) {
+        return gifts;
     }
 }
