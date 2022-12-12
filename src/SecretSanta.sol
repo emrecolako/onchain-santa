@@ -26,13 +26,14 @@ contract SecretSanta is ERC721Holder {
     error AlreadyCollected();
     /// @notice If user has already deposited
     error GiftAlreadyDeposited();
+    /// @notice User isn't allowed
+    error MerkleProofInvalid();
     /// @notice If user hasn't made any deposits
     error No_Deposits();
     /// @notice If user is not the token owner
     error NotTokenOwner();
     /// @notice If user is not the owner of the contract
     error NotOwner();
-
     /// @notice Throws error if address = 0
     error ZeroAddress();
 
@@ -63,6 +64,20 @@ contract SecretSanta is ERC721Holder {
     modifier onlyOwnerOf(address _nftaddress, uint256 _tokenId) {
         if (msg.sender != IERC721(_nftaddress).ownerOf(_tokenId))
             revert NotTokenOwner();
+        _;
+    }
+
+    // @notice Requires a valid merkle proof for the specified merkle root.
+    modifier onlyIfValidMerkleProof(bytes32 root, bytes32[] calldata proof) {
+        if (
+            !MerkleProof.verify(
+                proof,
+                root,
+                keccak256(abi.encodePacked(msg.sender))
+            )
+        ) {
+            revert MerkleProofInvalid();
+        }
         _;
     }
 
