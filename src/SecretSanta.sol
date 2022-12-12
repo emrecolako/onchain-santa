@@ -5,15 +5,6 @@ import "@openzeppelin/token/ERC721/IERC721.sol";
 import "@openzeppelin/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/utils/cryptography/MerkleProof.sol";
 
-// Potential Improvements:
-// 1. Add a check to make sure the depositor is not depositing their own token.
-// 2. Add a check to ensure the same token is not deposited twice by using a mapping of token IDs.
-// 3. Add a log of all gift assignments and a timestamp for when gifts were collected.
-// 4. Add a requirement that the depositor must withdraw their token within a certain time frame or the token will be re-assigned.
-// 5. Add an emergency withdraw function for the owner, in the event a depositor doesn't withdraw their token.
-// 6. Merkle Root to allow only certain collections (maybe just on-chain?)
-// 7. Add only one deposit per address.
-
 contract SecretSanta is ERC721Holder {
     /// @notice Individual NFT details + Index
     struct Vault {
@@ -53,6 +44,7 @@ contract SecretSanta is ERC721Holder {
     mapping(address => Vault) public Depositors;
     mapping(address => Gift) public collectedGifts;
     mapping(address => uint256) public DepositCount;
+    mapping(address => bool) public depositedGifts;
 
     /*//////////////////////////////////////////////////////////////
                           MODIFIERS
@@ -93,6 +85,11 @@ contract SecretSanta is ERC721Holder {
         nonZeroAddress(_nftaddress)
         onlyOwnerOf(_nftaddress, _tokenId)
     {
+        // Check if the user has already deposited a gift
+        if (depositedGifts[msg.sender]) {
+            revert GiftAlreadyDeposited();
+        }
+
         IERC721(_nftaddress).safeTransferFrom(
             msg.sender,
             address(this),
@@ -102,13 +99,17 @@ contract SecretSanta is ERC721Holder {
         gifts.push(Gift(_nftaddress, _tokenId));
         DepositCount[msg.sender]++;
         Depositors[msg.sender] = Vault(_nftaddress, _tokenId, gifts.length);
+
+        // Mark the user as having deposited a gift
+        depositedGifts[msg.sender] = true;
     }
 
     /// @notice Allows depositors to collect gifts
     function collect() public {
-        Vault memory vault = Depositors[msg.sender];
+        if (!depositedGifts[msg.sender]) {
+            revert No_Deposits();
+        }
 
-        if (vault.erc721Address == address(0)) revert No_Deposits();
         if (collectedGifts[msg.sender].erc721Address != address(0))
             revert AlreadyCollected();
 
@@ -163,5 +164,46 @@ contract SecretSanta is ERC721Holder {
         address recipient
     ) external onlyOwner {
         IERC721(_nftaddress).transferFrom(address(this), recipient, _tokenId);
+    }
+
+    ///@notice function that allows the contract owner to reclaim uncollected gifts
+    function reclaimGifts(address _transferAddress) public onlyOwner {
+        // Check if the reclaim timestamp has passed
+        if (block.timestamp < reclaimTimestamp) {
+            // Reclaim timestamp has not passed, do nothing
+            return;
+        }
+
+        // Loop through all gifts and check if they have been collected
+        for (uint256 i = 0; i < gifts.length; i++) {
+            Gift memory gift = gifts[i];
+            if (gift.erc721Address == address(0)) continue;
+
+            // Check if the gift has been collected
+            if (
+                IERC721(gift.erc721Address).ownerOf(gift.erc721TokenId) !=
+                address(this)
+            ) {
+                // Gift has been collected, do nothing
+                continue;
+            }
+
+            // Gift has not been collected, reclaim it
+            if (_transferAddress == address(0)) {
+                // Transfer the gift back to the original depositor
+                IERC721(gift.erc721Address).safeTransferFrom(
+                    address(this),
+                    IERC721(gift.erc721Address).ownerOf(gift.erc721TokenId),
+                    gift.erc721TokenId
+                );
+            } else {
+                // Transfer the gift to the specified address
+                IERC721(gift.erc721Address).safeTransferFrom(
+                    address(this),
+                    _transferAddress,
+                    gift.erc721TokenId
+                );
+            }
+        }
     }
 }
