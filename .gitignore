@@ -1,4 +1,6 @@
 out/
+other/
 cache/
 node_modules/
 .env
+broadcast/

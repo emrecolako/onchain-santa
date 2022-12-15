@@ -24,6 +24,10 @@ contract SecretSanta is ERC721Holder {
     //////////////////////////////////////////////////////////////*/
     /// @notice If user has already collected
     error AlreadyCollected();
+
+    /// @notice If collection period is not active
+    error CollectionPeriodIsNotActive();
+
     /// @notice If user has already deposited
     error GiftAlreadyDeposited();
     /// @notice User isn't allowed
@@ -39,6 +43,9 @@ contract SecretSanta is ERC721Holder {
 
     uint256 public reclaimTimestamp;
     address public ownerAddress;
+    bool public collectionOpen = false;
+
+    bytes32 public merkleRoot;
 
     Gift[] public gifts;
 
@@ -46,6 +53,9 @@ contract SecretSanta is ERC721Holder {
     mapping(address => Gift) public collectedGifts;
     mapping(address => uint256) public DepositCount;
     mapping(address => bool) public depositedGifts;
+
+    // Events
+    event AllowlistUpdated(bytes32 merkleRoot);
 
     /*//////////////////////////////////////////////////////////////
                           MODIFIERS
@@ -62,8 +72,14 @@ contract SecretSanta is ERC721Holder {
     }
 
     modifier onlyOwnerOf(address _nftaddress, uint256 _tokenId) {
-        if (msg.sender != IERC721(_nftaddress).ownerOf(_tokenId))
-            revert NotTokenOwner();
+        // if (msg.sender != IERC721(_nftaddress).ownerOf(_tokenId))
+        // revert NotTokenOwner();
+
+        if (
+            msg.sender != IERC721(_nftaddress).ownerOf(_tokenId) &&
+            msg.sender != IERC721(_nftaddress).getApproved(_tokenId)
+        ) revert NotTokenOwner();
+        // _;
         _;
     }
 
@@ -81,13 +97,19 @@ contract SecretSanta is ERC721Holder {
         _;
     }
 
+    modifier CollectionPeriodActive() {
+        if (collectionOpen) revert CollectionPeriodIsNotActive();
+        _;
+    }
+
     /*//////////////////////////////////////////////////////////////
                           CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(uint256 _reclaimTimestamp) {
+    constructor(uint256 _reclaimTimestamp, bytes32 _merkleRoot) {
         reclaimTimestamp = _reclaimTimestamp;
         ownerAddress = msg.sender;
+        merkleRoot = _merkleRoot;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -95,10 +117,15 @@ contract SecretSanta is ERC721Holder {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Allows users to deposit gifts
-    function deposit(address _nftaddress, uint256 _tokenId)
+    function deposit(
+        address _nftaddress,
+        uint256 _tokenId,
+        bytes32[] calldata proof
+    )
         public
         nonZeroAddress(_nftaddress)
         onlyOwnerOf(_nftaddress, _tokenId)
+        onlyIfValidMerkleProof(merkleRoot, proof)
     {
         // Check if the user has already deposited a gift
         if (depositedGifts[msg.sender]) {
@@ -106,8 +133,8 @@ contract SecretSanta is ERC721Holder {
         }
 
         IERC721(_nftaddress).safeTransferFrom(
-            msg.sender,
-            address(this),
+            msg.sender, //from
+            address(this), //to
             _tokenId
         );
 
@@ -119,8 +146,12 @@ contract SecretSanta is ERC721Holder {
         depositedGifts[msg.sender] = true;
     }
 
+    function toggleCollection() public onlyOwner {
+        collectionOpen = !collectionOpen;
+    }
+
     /// @notice Allows depositors to collect gifts
-    function collect() public {
+    function collect() public CollectionPeriodActive {
         if (!depositedGifts[msg.sender]) {
             revert No_Deposits();
         }
@@ -143,6 +174,30 @@ contract SecretSanta is ERC721Holder {
             msg.sender,
             gift.erc721TokenId
         );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                          ALLOWLIST FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    // @notice Allows users to check if their wallet has been allowlisted
+    function allowListed(address _wallet, bytes32[] calldata _proof)
+        public
+        view
+        returns (bool)
+    {
+        return
+            MerkleProof.verify(
+                _proof,
+                merkleRoot,
+                keccak256(abi.encodePacked(_wallet))
+            );
+    }
+
+    // @notice Updates merkleRoot of allowlist
+    function updateAllowList(bytes32 _merkleRoot) external onlyOwner {
+        merkleRoot = _merkleRoot;
+        emit AllowlistUpdated(merkleRoot);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -207,14 +262,14 @@ contract SecretSanta is ERC721Holder {
             if (_transferAddress == address(0)) {
                 // Transfer the gift back to the original depositor
                 IERC721(gift.erc721Address).safeTransferFrom(
-                    address(this),
+                    ownerAddress,
                     IERC721(gift.erc721Address).ownerOf(gift.erc721TokenId),
                     gift.erc721TokenId
                 );
             } else {
                 // Transfer the gift to the specified address
                 IERC721(gift.erc721Address).safeTransferFrom(
-                    address(this),
+                    ownerAddress,
                     _transferAddress,
                     gift.erc721TokenId
                 );
