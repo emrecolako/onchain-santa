@@ -98,7 +98,7 @@ contract SecretSanta is ERC721Holder {
     }
 
     modifier CollectionPeriodActive() {
-        if (collectionOpen) revert CollectionPeriodIsNotActive();
+        if (!collectionOpen) revert CollectionPeriodIsNotActive();
         _;
     }
 

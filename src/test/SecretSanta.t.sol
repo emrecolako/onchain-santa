@@ -132,6 +132,7 @@ contract SecretSantaTest is DSTest {
         address nftOneAddress = address(depositNFT_ONE);
         address nftTwoAddress = address(depositNFT_TWO);
         address nftThreeAddress = address(depositNFT_THREE);
+        address nftFourAddress = address(depositNFT_FOUR);
 
         bytes32[] memory _proof_0 = new bytes32[](3);
         _proof_0[
@@ -166,43 +167,56 @@ contract SecretSantaTest is DSTest {
             2
         ] = 0x5c5566ed9ca278962336d8318093681848d3b15d943f9984481273cd7a0bcdfe;
 
+        bytes32[] memory _proof_3 = new bytes32[](3);
+        _proof_3[
+            0
+        ] = 0x6f27acbb13347a0359ee7a8619cbc89319e9ae4034a33a3e0f5fddd5d2ff468b;
+        _proof_3[
+            1
+        ] = 0x28ada27893d936924fa9e8cfebced2bf6e7a798d7ac2e83bcccf21529736d043;
+        _proof_3[
+            2
+        ] = 0x5c5566ed9ca278962336d8318093681848d3b15d943f9984481273cd7a0bcdfe;
+
         vm.startPrank(address(users[0]));
+        console.log("0: ");
+        console.logAddress(users[0]);
+
         depositNFT_ONE.mint();
         depositNFT_ONE.setApprovalForAll(address(secretsanta), true);
         secretsanta.deposit(nftOneAddress, 1, _proof_0);
         vm.stopPrank();
 
         vm.startPrank(address(users[1]));
+        console.log("1: ");
+        console.logAddress(users[1]);
+
         depositNFT_TWO.mint();
         depositNFT_TWO.setApprovalForAll(address(secretsanta), true);
         secretsanta.deposit(nftTwoAddress, 1, _proof_1);
         vm.stopPrank();
 
         vm.startPrank(address(users[2]));
+        console.log("2: ");
+        console.logAddress(users[2]);
+
         depositNFT_THREE.mint();
         depositNFT_THREE.setApprovalForAll(address(secretsanta), true);
         secretsanta.deposit(nftThreeAddress, 1, _proof_2);
         vm.stopPrank();
 
-        // vm.startPrank(admin);
-        // secretsanta.toggleCollection();
-        // vm.stopPrank();
+        vm.startPrank(address(users[3]));
+        console.log("3: ");
+        console.logAddress(users[3]);
 
-        // address nftThreeAddress = address(depositNFT_THREE);
+        depositNFT_FOUR.mint();
+        depositNFT_FOUR.setApprovalForAll(address(secretsanta), true);
+        secretsanta.deposit(nftFourAddress, 1, _proof_3);
+        vm.stopPrank();
 
-        // vm.startPrank(address(users[2]));
-        // depositNFT_THREE.mint();
-        // depositNFT_THREE.setApprovalForAll(address(secretsanta), true);
-        // secretsanta.deposit(nftThreeAddress, 1);
-        // vm.stopPrank();
-
-        // address nftFourAddress = address(depositNFT_FOUR);
-
-        // vm.startPrank(address(users[3]));
-        // depositNFT_FOUR.mint();
-        // depositNFT_FOUR.setApprovalForAll(address(secretsanta), true);
-        // secretsanta.deposit(nftFourAddress, 1);
-        // vm.stopPrank();
+        vm.startPrank(admin);
+        secretsanta.toggleCollection();
+        vm.stopPrank();
 
         vm.startPrank(address(users[0]));
         secretsanta.collect();
@@ -216,9 +230,9 @@ contract SecretSantaTest is DSTest {
         secretsanta.collect();
         vm.stopPrank();
 
-        // vm.startPrank(address(users[3]));
-        // secretsanta.collect();
-        // vm.stopPrank();
+        vm.startPrank(address(users[3]));
+        secretsanta.collect();
+        vm.stopPrank();
     }
 
     // function testGetDepositedGifts() public {
