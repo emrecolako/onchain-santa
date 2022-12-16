@@ -5,8 +5,6 @@ import "@openzeppelin/token/ERC721/IERC721.sol";
 import "@openzeppelin/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/utils/cryptography/MerkleProof.sol";
 
-import "forge-std/console.sol";
-
 contract SecretSanta is ERC721Holder {
     /// @notice Individual NFT details + Index
     struct Vault {
