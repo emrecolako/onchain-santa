@@ -229,11 +229,6 @@ contract SecretSanta is ERC721Holder {
         return randomNumber;
     }
 
-    /// @notice Return index of gifts
-    function getDepositedGifts() public view returns (Gift[] memory) {
-        return gifts;
-    }
-
     /// @notice Emergency function to withdraw certain NFT
     function adminWithdraw(
         address _nftaddress,
