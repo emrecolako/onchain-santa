@@ -5,6 +5,8 @@ import "@openzeppelin/token/ERC721/IERC721.sol";
 import "@openzeppelin/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/utils/cryptography/MerkleProof.sol";
 
+import "forge-std/console.sol";
+
 contract SecretSanta is ERC721Holder {
     /// @notice Individual NFT details + Index
     struct Vault {
@@ -24,16 +26,16 @@ contract SecretSanta is ERC721Holder {
     //////////////////////////////////////////////////////////////*/
     /// @notice If user has already collected
     error AlreadyCollected();
-
     /// @notice If collection period is not active
     error CollectionPeriodIsNotActive();
-
     /// @notice If user has already deposited
     error GiftAlreadyDeposited();
     /// @notice User isn't allowed
     error MerkleProofInvalid();
     /// @notice If user hasn't made any deposits
     error No_Deposits();
+    /// @notice No Gifts available
+    error No_Gifts_Available();
     /// @notice If user is not the token owner
     error NotTokenOwner();
     /// @notice If user is not the owner of the contract
@@ -42,6 +44,7 @@ contract SecretSanta is ERC721Holder {
     error ZeroAddress();
 
     uint256 public reclaimTimestamp;
+    uint256 private _offSet;
     address public ownerAddress;
     bool public collectionOpen = false;
 
@@ -72,14 +75,10 @@ contract SecretSanta is ERC721Holder {
     }
 
     modifier onlyOwnerOf(address _nftaddress, uint256 _tokenId) {
-        // if (msg.sender != IERC721(_nftaddress).ownerOf(_tokenId))
-        // revert NotTokenOwner();
-
         if (
             msg.sender != IERC721(_nftaddress).ownerOf(_tokenId) &&
             msg.sender != IERC721(_nftaddress).getApproved(_tokenId)
         ) revert NotTokenOwner();
-        // _;
         _;
     }
 
@@ -139,6 +138,7 @@ contract SecretSanta is ERC721Holder {
         );
 
         gifts.push(Gift(_nftaddress, _tokenId));
+
         DepositCount[msg.sender]++;
         Depositors[msg.sender] = Vault(_nftaddress, _tokenId, gifts.length);
 
@@ -161,10 +161,15 @@ contract SecretSanta is ERC721Holder {
 
         uint256 giftIdx;
 
-        if (gifts.length == 1) {
+        if (gifts.length == 0) {
+            revert No_Gifts_Available();
+        } else if (gifts.length == 1) {
             giftIdx = 0;
+        } else if (gifts.length == 2) {
+            giftIdx = (_offSet % 2 == 0) ? 0 : 1;
         } else {
-            giftIdx = _randomNumber() % gifts.length;
+            uint256 randomNumber = _randomNumber();
+            giftIdx = ((randomNumber % gifts.length) + _offSet) % gifts.length;
         }
 
         Gift memory gift = gifts[giftIdx];
@@ -174,6 +179,8 @@ contract SecretSanta is ERC721Holder {
             msg.sender,
             gift.erc721TokenId
         );
+
+        _offSet = _offSet + 1;
     }
 
     /*//////////////////////////////////////////////////////////////
