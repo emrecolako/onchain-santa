@@ -1,46 +1,18 @@
-# Forge Template
 
-A template for quickly getting started with forge
-
-## Getting Started
-
-```
-mkdir my-project
-cd my-project
-forge init --template https://github.com/FrankieIsLost/forge-template
-git submodule update --init --recursive  ## initialize submodule dependencies
-npm install ## install development dependencies
-forge build
-forge test
-```
-
-## Features
-
-### Testing Utilities
-
-Includes a `Utilities.sol` contract with common testing methods (like creating users with an initial balance), as well as various other utility contracts.
-
-### Preinstalled dependencies
-
-`ds-test` for testing, `forge-std` for better cheatcode UX, and `solmate` for optimized contract implementations.  
-
-### Linting
-
-Pre-configured `solhint` and `prettier-plugin-solidity`. Can be run by
-
-```
-npm run solhint
-npm run prettier
-```
-
-### CI with Github Actions
-
-Automatically run linting and tests on pull requests.
-
-### Default Configuration
-
-Including `.gitignore`, `.vscode`, `remappings.txt`
-
-## Acknowledgement
-
-Inspired by great dapptools templates like https://github.com/gakonst/forge-template, https://github.com/gakonst/dapptools-template and https://github.com/transmissions11/dapptools-template
+ Only allows ERC721s to be deposited
+ 
+ Added an allowlist to only allow certain addresses (to deposit and collect)
+ 
+ Randomisation is pseudo random
+ 
+ Toggle for collection window
+ 
+ 1 address = 1 deposit 
+ 
+ Address can collect and NFT if they deposited an NFT
+ 
+ Added a reclaimGifts function to reclaim if gifts are not collected
+ 
+ adminWithdraw function to withdraw NFTs to any address
+ 
+ User needs to call setApprovalforAll from the collection address and approve the SecretSanta address
