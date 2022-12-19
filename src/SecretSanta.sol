@@ -5,6 +5,39 @@ import "@openzeppelin/token/ERC721/IERC721.sol";
 import "@openzeppelin/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/utils/cryptography/MerkleProof.sol";
 
+// ████████████████████████████████████████████████████████████████████████████████
+// ████████████████████████████████████████████████████████████████████████████████
+// ████████████████████████████████████████████████████████████████████████████████
+// ████████████████████████████████████████████████████████████████████████████████
+// ████████████████████████████████████████████████████████████████████████████████
+// ████████████████████████████████████████████████████████████████████████████████
+// ████████████████████████████████████████████████████████████████████████████████
+// ████████████████████████████████████████████████████████▀▀╙╙╙└     ,▄▓██████████
+// █████████████████████████████████████████▀▀▀▀▀╙╙'   ¡╟▓      ,,,▄▓▓█████████████
+// ████████████████████████▀▀╙╙╙╙╙▀▀█████▒         ,▄▄▓██▌    ⁿ▀▀▀▀▀▀██████████████
+// ██████████████████▀╙              ╚███     ▓▓▓████████          ╓▓██████████████
+// ██████████████████,     ╔▓▓▓██▒    ╟█          ,╟▓███▌    ╔▄▄▓██████████████████
+// ███████████████████ε    ▓█████╩    ╠⌐    ≡▄▄▄▓███████╬   ╔██████████████████████
+// ██████████████████▌    ╟████▀`    ▄▌   «▓██▀▀▀▀▀╙╙╠╠╣▒  ╔███████████████████████
+// ██████████████████    ║███╨     ╔██╬          ,╔▓████▓▒▄████████████████████████
+// █████████████████▓   ╔█▀`    ,▄████▌ ,,,╓▄▄▓▓███████████████████████████████████
+// █████████████████▌,;φ╙   ,╔▓████████▓███████████████████████████████████████████
+// ██████████████████▓▒╓▄▄▓████████████████████████████████████████████████████████
+// ████████████████████████████████████████████████████████████████████████████████
+// ████████████████████████████████████████████████████████████████████████████████
+// ████████████████████████████████████████████████████████████████████████████████
+// ████████████████████████████████████████████████████████████████████████████████
+// ████████████████████████████████████████████████████████████████████████████████
+// ████████████████████████████████████████████████████████████████████████████████
+// ████████████████████████████████████████████████████████████████████████████████
+// ████████████████████████████████████████████████████████████████████████████████
+// ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+
+/**
+ * @author emrecolako.eth
+ * @title SecretSanta for DEF DAO!
+ */
+
 contract SecretSanta is ERC721Holder {
     /// @notice Individual NFT details + Index
     struct Vault {
@@ -26,6 +59,8 @@ contract SecretSanta is ERC721Holder {
     error AlreadyCollected();
     /// @notice If collection period is not active
     error CollectionPeriodIsNotActive();
+    /// @notice Throws error if depositWindow is closed
+    error DepositWindowClosed();
     /// @notice If user has already deposited
     error GiftAlreadyDeposited();
     /// @notice User isn't allowed
@@ -57,6 +92,17 @@ contract SecretSanta is ERC721Holder {
 
     // Events
     event AllowlistUpdated(bytes32 merkleRoot);
+    event GiftCollected(
+        address erc721Address,
+        address senderAddress,
+        uint256 erc721TokenId
+    );
+
+    event GiftDeposited(
+        address erc721Address,
+        address senderAddress,
+        uint256 erc721TokenId
+    );
 
     /*//////////////////////////////////////////////////////////////
                           MODIFIERS
@@ -99,6 +145,11 @@ contract SecretSanta is ERC721Holder {
         _;
     }
 
+    modifier DepositWindowActive() {
+        if (collectionOpen) revert DepositWindowClosed();
+        _;
+    }
+
     /*//////////////////////////////////////////////////////////////
                           CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -123,6 +174,7 @@ contract SecretSanta is ERC721Holder {
         nonZeroAddress(_nftaddress)
         onlyOwnerOf(_nftaddress, _tokenId)
         onlyIfValidMerkleProof(merkleRoot, proof)
+        DepositWindowActive
     {
         // Check if the user has already deposited a gift
         if (depositedGifts[msg.sender]) {
@@ -130,8 +182,8 @@ contract SecretSanta is ERC721Holder {
         }
 
         IERC721(_nftaddress).safeTransferFrom(
-            msg.sender, //from
-            address(this), //to
+            msg.sender,
+            address(this),
             _tokenId
         );
 
@@ -142,6 +194,7 @@ contract SecretSanta is ERC721Holder {
 
         // Mark the user as having deposited a gift
         depositedGifts[msg.sender] = true;
+        emit GiftDeposited(_nftaddress, msg.sender, _tokenId);
     }
 
     function toggleCollection() public onlyOwner {
@@ -171,6 +224,8 @@ contract SecretSanta is ERC721Holder {
         }
 
         Gift memory gift = gifts[giftIdx];
+
+        emit GiftCollected(gift.erc721Address, msg.sender, gift.erc721TokenId);
 
         IERC721(gift.erc721Address).safeTransferFrom(
             address(this),
